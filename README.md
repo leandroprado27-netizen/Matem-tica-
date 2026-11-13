@@ -46,3 +46,15 @@ e permite liberar todas as fases, ligar/desligar o som ou zerar o progresso.
 Sem build e sem dependências. Para testar, basta abrir `index.html` no navegador.
 Para ajustar regras de progressão, veja `RULES` no início do script;
 para mudar as perguntas, veja o array `SKILLS`.
+
+## Corrida da Matemática (`corrida.html`)
+
+Jogo de corrida no estilo Gran Turismo: cada conta de matemática é uma curva da pista.
+
+- Acertar faz o carro avançar; responder rápido avança mais. 3 acertos seguidos ativam o **TURBO**.
+- Errar ou deixar o tempo acabar faz o carro perder ritmo.
+- Cinco licenças (Iniciante → Platina), cada uma com 3 corridas. A Copa de cada licença libera a próxima.
+- Ganhe 🪙 nas corridas e compre carros mais potentes na garagem.
+- Painel dos pais (📊): acertos por assunto, som liga/desliga e zerar progresso.
+
+Abra `corrida.html` no navegador do celular, como o `index.html`. O progresso fica salvo no navegador.
