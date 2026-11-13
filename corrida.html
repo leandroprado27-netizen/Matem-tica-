@@ -238,6 +238,13 @@
   .acts { display: flex; gap: 10px; flex-wrap: wrap; }
   .acts .btn { flex: 1; }
 
+  #nomeInput { width: 100%; font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); background: #0d1119; border: 1px solid var(--line); border-radius: 12px; padding: 14px; user-select: text; }
+  #nomeInput:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,238,.2); }
+  #s-nome .card { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+  #s-nome h2 { font-size: 18px; }
+  #nomeCar { width: 200px; max-width: 100%; }
+  #nomeCar svg { width: 100%; height: auto; display: block; }
+
   @media (max-width: 360px) {
     .tag { flex-basis: 86px; font-size: 11px; }
     .hero svg { width: 110px; }
@@ -251,12 +258,25 @@
     <div class="cred" id="cred">🪙 0</div>
   </header>
 
+  <!-- NOME DO PILOTO -->
+  <section class="screen" id="s-nome">
+    <div class="card">
+      <div id="nomeCar"></div>
+      <h2>Qual é o seu nome, piloto?</h2>
+      <p class="muted">Seu nome aparece na pista e nos resultados.</p>
+    </div>
+    <form class="stack" id="nomeForm" autocomplete="off">
+      <input id="nomeInput" maxlength="16" placeholder="Digite seu nome" required>
+      <button class="btn wide" type="submit">Começar a correr ▶</button>
+    </form>
+  </section>
+
   <!-- MENU -->
   <section class="screen on" id="s-menu">
     <div class="card hero">
       <div id="heroCar"></div>
       <div>
-        <div class="kicker">Carro em uso</div>
+        <div class="kicker" id="pilot"></div>
         <div class="hero-name" id="heroName"></div>
         <p class="muted">Responda certo e rápido para vencer a corrida!</p>
       </div>
@@ -353,6 +373,7 @@
     <div id="statList"></div>
     <div class="acts">
       <button class="btn ghost" id="soundBtn"></button>
+      <button class="btn ghost" id="nameBtn">✏️ Mudar nome</button>
       <button class="btn danger" id="resetBtn">Zerar progresso</button>
     </div>
   </div>
@@ -454,7 +475,7 @@
   }
 
   // ---------- save ----------
-  const DEFAULT = { credits: 0, owned: ['kart'], car: 'kart', records: {}, stats: {}, sound: true };
+  const DEFAULT = { name: '', credits: 0, owned: ['kart'], car: 'kart', records: {}, stats: {}, sound: true };
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
@@ -521,6 +542,7 @@
     const c = carById(S.car);
     $('#heroCar').innerHTML = carSVG(c.color);
     $('#heroName').textContent = c.name;
+    $('#pilot').textContent = S.name ? `Piloto: ${S.name}` : '';
   }
 
   const isUnlocked = t => t === 0 || !!S.records[t - 1];
@@ -589,7 +611,7 @@
     return {
       tier, li, ri, Q, d: 100 / Q, qs, idx: 0, correct: 0, combo: 0, maxCombo: 0,
       limit: TIME_LIMIT[li] * 1000, car, locked: true, raf: 0, nextT: 0, qStart: 0,
-      me: { name: 'Você', color: car.color, progress: 0, isMe: true },
+      me: { name: S.name || 'Você', color: car.color, progress: 0, isMe: true },
       rivals: RIVALS.map(r => ({ name: r.name, color: r.color, progress: 0, pace: base * r.mult })),
     };
   }
@@ -836,14 +858,37 @@
 
   $('#soundBtn').addEventListener('click', () => { S.sound = !S.sound; save(); openPais(); });
   $('#resetBtn').addEventListener('click', () => {
-    if (!confirm('Zerar TODO o progresso (créditos, carros e corridas)?')) return;
+    if (!confirm('Zerar TODO o progresso (nome, créditos, carros e corridas)?')) return;
     S = clone(DEFAULT);
     save();
     $('#pais').hidden = true;
-    go('menu');
+    start();
   });
 
-  go('menu');
+  function start() {
+    if (S.name) { go('menu'); return; }
+    $('#nomeInput').value = '';
+    $('#nomeCar').innerHTML = carSVG(carById(S.car).color);
+    show('nome');
+  }
+
+  $('#nomeForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const n = $('#nomeInput').value.trim().slice(0, 16);
+    if (!n) return;
+    S.name = n;
+    save();
+    start();
+  });
+
+  $('#nameBtn').addEventListener('click', () => {
+    $('#pais').hidden = true;
+    $('#nomeInput').value = S.name || '';
+    $('#nomeCar').innerHTML = carSVG(carById(S.car).color);
+    show('nome');
+  });
+
+  start();
 })();
 </script>
 </body>
