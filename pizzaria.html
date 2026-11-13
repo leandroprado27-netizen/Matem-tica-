@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d8402f">
+<title>Pizzaria da Matemática</title>
+<style>
+  :root {
+    --bg: #fff4e0;
+    --ink: #3b2a1e;
+    --card: #ffffff;
+    --line: #e7d3b5;
+    --red: #d8402f;
+    --red-lo: #9c2a1d;
+    --green: #2e9e5b;
+    --green-lo: #1f6e3e;
+    --gold: #f2b632;
+    --muted: #8a7460;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #2a1d15; --ink: #fff4e0; --card: #3d2b20; --line: #5a4030; --muted: #c9b29a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #2a1d15; --ink: #fff4e0; --card: #3d2b20; --line: #5a4030; --muted: #c9b29a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  #app { max-width: 460px; margin: 0 auto; padding: 14px 14px 40px; }
+  .screen { display: none; }
+  .screen.on { display: block; }
+
+  header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 18px; margin: 0 0 8px; }
+  p { margin: 0 0 8px; line-height: 1.4; }
+  .muted { color: var(--muted); font-size: 14px; }
+
+  .money {
+    background: var(--gold); color: #3b2a1e; font-weight: 800;
+    padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  .card {
+    background: var(--card); border: 2px solid var(--line);
+    border-radius: 16px; padding: 14px; margin-bottom: 12px;
+    box-shadow: 0 3px 0 var(--line);
+  }
+  .btn {
+    font: inherit; font-weight: 700; font-size: 17px;
+    border: 0; border-radius: 14px; padding: 14px; width: 100%;
+    background: #fff; color: #3b2a1e; box-shadow: 0 4px 0 #cdb48f;
+    cursor: pointer; touch-action: manipulation; margin-bottom: 10px;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #cdb48f; }
+  .btn.go { background: var(--red); color: #fff; box-shadow: 0 4px 0 var(--red-lo); }
+  .btn.ok { background: var(--green); color: #fff; box-shadow: 0 4px 0 var(--green-lo); }
+  .btn.small { width: auto; padding: 8px 12px; font-size: 14px; margin: 0; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+  .bar { height: 14px; background: #eadcc6; border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--green); transition: width .1s linear; }
+  .bar.low > i { background: var(--red); }
+
+  /* Jogo */
+  .customer { display: flex; gap: 10px; align-items: center; }
+  .face { font-size: 40px; }
+  .bubble {
+    background: #fff; color: #3b2a1e; border-radius: 14px; padding: 10px 12px;
+    position: relative; flex: 1; border: 2px solid var(--line);
+  }
+  .timer-row { display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; }
+  .timer-row .bar { flex: 1; }
+  .pizza-wrap { display: flex; justify-content: center; }
+  .pizza-wrap svg { width: 200px; height: 200px; }
+  .step { font-size: 15px; text-align: center; margin: 6px 0; }
+  .equation {
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 30px; font-weight: 800;
+    text-align: center; background: #fff8ec; color: #3b2a1e;
+    border: 2px dashed var(--line); border-radius: 12px; padding: 12px; margin: 8px 0 12px;
+  }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opts .btn { font-size: 24px; padding: 16px; margin: 0; }
+  .feedback { min-height: 22px; text-align: center; font-weight: 700; margin-top: 10px; }
+  .feedback.bad { color: var(--red); }
+  .feedback.good { color: var(--green); }
+  .recipe { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
+
+  .flavor { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .flavor .info { flex: 1; }
+  .tag { font-size: 13px; font-weight: 700; color: var(--green); }
+
+  /* Resultado */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
+  .overlay.on { display: flex; }
+  .overlay .card { max-width: 360px; width: 100%; text-align: center; background: var(--card); color: var(--ink); }
+  .big { font-size: 48px; }
+  .ok-text { color: var(--green); font-weight: 800; font-size: 26px; }
+  .bad-text { color: var(--red); font-weight: 800; font-size: 22px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INÍCIO -->
+  <section id="home" class="screen on">
+    <header>
+      <h1>🍕 Pizzaria da Matemática</h1>
+      <div class="money" id="home-money">R$ 0</div>
+    </header>
+    <div class="card">
+      <p>Atenda os clientes, monte a pizza resolvendo as equações de cada ingrediente e entregue antes que o tempo acabe.</p>
+      <p class="muted">Pizza entregue no prazo rende dinheiro. Com o dinheiro você compra novos sabores.</p>
+    </div>
+    <div class="card">
+      <p>Pizzas entregues: <b id="home-served">0</b></p>
+      <p>Sabores no cardápio: <b id="home-flavors">1</b></p>
+    </div>
+    <button class="btn go" id="btn-start">Atender cliente 🛵</button>
+    <button class="btn" id="btn-shop">Cardápio e compras 🛒</button>
+    <button class="btn small" id="btn-reset" style="width:100%;color:var(--muted);box-shadow:none;background:transparent">Zerar o jogo</button>
+  </section>
+
+  <!-- CARDÁPIO -->
+  <section id="shop" class="screen">
+    <header>
+      <h1>🛒 Cardápio</h1>
+      <div class="money" id="shop-money">R$ 0</div>
+    </header>
+    <div id="shop-list"></div>
+    <button class="btn" id="btn-back-shop">Voltar</button>
+  </section>
+
+  <!-- JOGO -->
+  <section id="game" class="screen">
+    <header>
+      <h1 id="game-title">Pedido</h1>
+      <div class="money" id="game-money">R$ 0</div>
+    </header>
+
+    <div class="card">
+      <div class="customer">
+        <div class="face" id="cust-face">🧑</div>
+        <div class="bubble" id="cust-text"></div>
+      </div>
+      <div class="timer-row">
+        <span class="muted" style="white-space:nowrap">⏱ Paciência</span>
+        <div class="bar" id="timer-bar"><i id="timer-fill"></i></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="pizza-wrap" id="pizza"></div>
+      <p class="step" id="step-text"></p>
+      <div class="equation" id="equation"></div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <button class="btn" id="btn-leave">Cancelar pedido</button>
+  </section>
+
+  <!-- Resultado -->
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <div class="big" id="res-emoji">🍕</div>
+      <h2 id="res-title"></h2>
+      <p id="res-text"></p>
+      <p class="ok-text" id="res-money"></p>
+      <button class="btn go" id="btn-next">Próximo cliente</button>
+      <button class="btn" id="btn-home-res">Voltar ao início</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Dados do jogo =====
+const INGREDIENTS = {
+  'mussarela': '#fbe6a2', 'tomate': '#e0452f', 'calabresa': '#9e3425',
+  'cebola': '#c7a3e6', 'frango': '#d9a066', 'catupiry': '#fff7e6',
+  'milho': '#ffd23f', 'presunto': '#f4a4a0', 'ovo': '#fff0b3',
+  'azeitona': '#2f3a22', 'parmesão': '#f0cf6a', 'gorgonzola': '#a9c6e6',
+  'chocolate': '#5b3a29', 'morango': '#ff5e7a', 'leite condensado': '#fff3c4'
+};
+
+// level: 1 = contas simples, 2 = multiplicação, 3 = equação com 2 passos
+const FLAVORS = {
+  margherita:    { name: 'Margherita',           cost: 0,   pay: 20,  level: 1, steps: ['mussarela', 'tomate'] },
+  calabresa:     { name: 'Calabresa',            cost: 40,  pay: 35,  level: 1, steps: ['calabresa', 'cebola'] },
+  frango:        { name: 'Frango com Catupiry',  cost: 90,  pay: 55,  level: 2, steps: ['frango', 'catupiry', 'milho'] },
+  portuguesa:    { name: 'Portuguesa',           cost: 130, pay: 75,  level: 2, steps: ['presunto', 'ovo', 'cebola', 'azeitona'] },
+  quatroqueijos: { name: 'Quatro Queijos',       cost: 180, pay: 95,  level: 2, steps: ['mussarela', 'parmesão', 'gorgonzola', 'catupiry'] },
+  chocolate:     { name: 'Chocolate com Morango',cost: 260, pay: 140, level: 3, steps: ['chocolate', 'morango', 'leite condensado'] }
+};
+const ORDER_OF_MENU = ['margherita', 'calabresa', 'frango', 'portuguesa', 'quatroqueijos', 'chocolate'];
+
+const CUSTOMERS = [
+  { face: '👵', name: 'Dona Lúcia' }, { face: '🧔', name: 'Seu Jorge' },
+  { face: '👧', name: 'Ana' },        { face: '👨', name: 'Tio Beto' },
+  { face: '🧑', name: 'Marcos' },     { face: '👩', name: 'Teresa' }
+];
+
+const SAVE_KEY = 'pizzaria-save-v1';
+const PENALTY = 4; // segundos perdidos a cada conta errada
+
+// ===== Utilidades =====
+const $ = s => document.querySelector(s);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[rnd(0, arr.length - 1)];
+const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = rnd(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+const brl = v => 'R$ ' + v;
+
+// ===== Save =====
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d && typeof d.money === 'number' && Array.isArray(d.unlocked)) return d;
+    }
+  } catch (e) { /* navegador sem armazenamento: começa do zero */ }
+  return { money: 0, served: 0, unlocked: ['margherita'] };
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* ignora */ }
+}
+let S = loadSave();
+
+// ===== Equações =====
+// Retorna uma equação cuja resposta é n (a quantidade de fatias do ingrediente)
+function makeEq(level) {
+  const kind = rnd(1, level);
+  let n, text;
+  if (kind === 1) {            // x + a = c
+    n = rnd(2, 9); const a = rnd(1, 9);
+    text = `x + ${a} = ${n + a}`;
+  } else if (kind === 2) {     // a × x = c
+    n = rnd(2, 9); const a = rnd(2, 6);
+    text = `${a} × x = ${a * n}`;
+  } else {                     // a × x + b = c
+    n = rnd(1, 9); const a = rnd(2, 4), b = rnd(1, 9);
+    text = `${a} × x + ${b} = ${a * n + b}`;
+  }
+  const wrong = new Set();
+  for (const d of shuffle([-3, -2, -1, 1, 2, 3, 4])) {
+    if (wrong.size >= 3) break;
+    const v = n + d;
+    if (v > 0 && v !== n) wrong.add(v);
+  }
+  return { text, answer: n, options: shuffle([n, ...wrong]) };
+}
+
+// ===== Pedido =====
+let order = null;
+let timerId = null;
+let bakeTimeout = null;
+
+function newOrder() {
+  const key = pick(S.unlocked);
+  const f = FLAVORS[key];
+  const c = pick(CUSTOMERS);
+  const total = 25 + f.steps.length * 12; // segundos de paciência
+  return {
+    key, f, customer: c,
+    steps: f.steps.map(ing => ({ ing, eq: makeEq(f.level) })),
+    idx: 0, errors: 0,
+    timeLeft: total, total,
+    dots: [], baking: false, over: false,
+    msg: '', msgClass: ''
+  };
+}
+
+function startOrder() {
+  order = newOrder();
+  show('game');
+  $('#game-title').textContent = 'Pedido de ' + order.customer.name;
+  $('#cust-face').textContent = order.customer.face;
+  $('#cust-text').textContent = `Quero uma pizza de ${order.f.name}!`;
+  renderGame();
+  renderBar();
+  stopTimer();
+  timerId = setInterval(tick, 100);
+}
+
+function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+
+function tick() {
+  if (!order || order.over || order.baking) return;
+  order.timeLeft = Math.max(0, order.timeLeft - 0.1);
+  renderBar();
+  if (order.timeLeft <= 0) fail();
+}
+
+function renderBar() {
+  if (!order) return;
+  const pct = Math.max(0, order.timeLeft / order.total) * 100;
+  $('#timer-fill').style.width = pct + '%';
+  $('#timer-bar').classList.toggle('low', pct < 30);
+  $('#cust-face').textContent = pct < 30 ? '😠' : pct < 60 ? '😕' : order.customer.face;
+}
+
+function renderGame() {
+  if (!order) return;
+  $('#game-money').textContent = brl(S.money);
+  drawPizza();
+
+  const st = order.steps[order.idx];
+  if (order.baking) {
+    $('#step-text').textContent = 'Pizza no forno... 🔥';
+    $('#equation').textContent = '';
+    $('#opts').innerHTML = '';
+  } else {
+    $('#step-text').textContent =
+      `Passo ${order.idx + 1} de ${order.steps.length}: quantas fatias de ${st.ing}? (x = fatias)`;
+    $('#equation').textContent = st.eq.text;
+    const box = $('#opts');
+    box.innerHTML = '';
+    st.eq.options.forEach(v => {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.textContent = v;
+      b.onclick = () => answer(v);
+      box.appendChild(b);
+    });
+  }
+  const fb = $('#feedback');
+  fb.textContent = order.msg;
+  fb.className = 'feedback ' + order.msgClass;
+}
+
+function drawPizza() {
+  const dots = order.dots.map(d =>
+    `<circle cx="${d.x.toFixed(1)}" cy="${d.y.toFixed(1)}" r="${d.r}" fill="${INGREDIENTS[d.ing]}" stroke="#3b2a1e" stroke-width="1.5"/>`
+  ).join('');
+  $('#pizza').innerHTML = `
+    <svg viewBox="0 0 200 200" aria-label="Pizza">
+      <circle cx="100" cy="100" r="97" fill="#e9b25f" stroke="#8b5a2b" stroke-width="3"/>
+      <circle cx="100" cy="100" r="84" fill="#e0452f"/>
+      <circle cx="100" cy="100" r="84" fill="none" stroke="#b33a24" stroke-width="2"/>
+      ${dots}
+    </svg>`;
+}
+
+// Cria uma posição aleatória dentro da pizza
+function newDot(ing) {
+  const ang = Math.random() * Math.PI * 2;
+  const rad = Math.sqrt(Math.random()) * 68;
+  return { x: 100 + Math.cos(ang) * rad, y: 100 + Math.sin(ang) * rad, r: 7, ing };
+}
+
+function answer(v) {
+  if (!order || order.over || order.baking) return;
+  const st = order.steps[order.idx];
+  if (v === st.eq.answer) {
+    for (let i = 0; i < v; i++) order.dots.push(newDot(st.ing));
+    order.idx++;
+    order.msg = 'Certo! ' + v + ' fatias de ' + st.ing + ' na pizza 🍕';
+    order.msgClass = 'good';
+    if (order.idx >= order.steps.length) {
+      order.baking = true;
+      order.msg = 'Pizza pronta! Saindo do forno...';
+      bakeTimeout = setTimeout(deliver, 2000);
+    }
+    renderGame();
+  } else {
+    order.errors++;
+    order.timeLeft = Math.max(0, order.timeLeft - PENALTY);
+    order.msg = `Conta errada! Você perdeu ${PENALTY} segundos.`;
+    order.msgClass = 'bad';
+    renderBar();
+    if (order.timeLeft <= 0) { fail(); return; }
+    renderGame();
+  }
+}
+
+function deliver() {
+  if (!order || order.over) return;
+  if (order.timeLeft <= 0) { fail(); return; }
+  const ratio = order.timeLeft / order.total;          // 0..1
+  const speed = 0.5 + 0.5 * ratio;                     // entregar rápido rende mais
+  const accuracy = Math.max(0.5, 1 - 0.1 * order.errors);
+  const amount = Math.max(1, Math.round(order.f.pay * speed * accuracy));
+  S.money += amount;
+  S.served += 1;
+  save();
+  finish(true, amount,
+    `${order.customer.name} adorou a ${order.f.name}!`);
+}
+
+function fail() {
+  if (!order || order.over) return;
+  finish(false, 0,
+    `${order.customer.name} ficou bravo porque demorou demais e foi embora sem pagar. Mesmo que a pizza fosse gostosa, o prazo acabou.`);
+}
+
+function finish(ok, amount, text) {
+  order.over = true;
+  stopTimer();
+  clearTimeout(bakeTimeout);
+  $('#res-emoji').textContent = ok ? '🍕' : '😠';
+  $('#res-title').textContent = ok ? 'Pizza entregue!' : 'Cliente bravo!';
+  $('#res-text').textContent = text;
+  $('#res-money').className = ok ? 'ok-text' : 'bad-text';
+  $('#res-money').textContent = ok ? `+ ${brl(amount)}` : 'Sem pagamento';
+  $('#overlay').classList.add('on');
+  $('#btn-next').textContent = 'Próximo cliente';
+}
+
+function leaveOrder() {
+  stopTimer();
+  clearTimeout(bakeTimeout);
+  order = null;
+  $('#overlay').classList.remove('on');
+  goHome();
+}
+
+// ===== Cardápio =====
+function renderShop() {
+  $('#shop-money').textContent = brl(S.money);
+  const list = $('#shop-list');
+  list.innerHTML = '';
+  ORDER_OF_MENU.forEach(key => {
+    const f = FLAVORS[key];
+    const owned = S.unlocked.includes(key);
+    const card = document.createElement('div');
+    card.className = 'card flavor';
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML = `<h2>${f.name}</h2>
+      <p class="recipe">Ingredientes: ${f.steps.join(', ')}</p>
+      <p class="recipe">Paga até ${brl(f.pay)} por pizza</p>`;
+    card.appendChild(info);
+    if (owned) {
+      const t = document.createElement('span');
+      t.className = 'tag'; t.textContent = '✅ No cardápio';
+      card.appendChild(t);
+    } else {
+      const b = document.createElement('button');
+      b.className = 'btn small ok';
+      b.textContent = 'Comprar ' + brl(f.cost);
+      b.disabled = S.money < f.cost;
+      b.onclick = () => buyFlavor(key);
+      card.appendChild(b);
+    }
+    list.appendChild(card);
+  });
+}
+
+function buyFlavor(key) {
+  const f = FLAVORS[key];
+  if (S.unlocked.includes(key) || S.money < f.cost) return;
+  S.money -= f.cost;
+  S.unlocked.push(key);
+  save();
+  renderShop();
+}
+
+// ===== Navegação =====
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  $('#home-money').textContent = brl(S.money);
+  $('#home-served').textContent = S.served;
+  $('#home-flavors').textContent = S.unlocked.length;
+  show('home');
+}
+
+$('#btn-start').onclick = startOrder;
+$('#btn-shop').onclick = () => { renderShop(); show('shop'); };
+$('#btn-back-shop').onclick = goHome;
+$('#btn-leave').onclick = () => { if (confirm('Cancelar este pedido? O cliente vai embora sem pagar.')) leaveOrder(); };
+$('#btn-next').onclick = () => { $('#overlay').classList.remove('on'); order = null; startOrder(); };
+$('#btn-home-res').onclick = () => { $('#overlay').classList.remove('on'); order = null; goHome(); };
+$('#btn-reset').onclick = () => {
+  if (!confirm('Zerar todo o progresso (dinheiro e sabores)?')) return;
+  S = { money: 0, served: 0, unlocked: ['margherita'] };
+  save();
+  goHome();
+};
+
+goHome();
+</script>
+</body>
+</html>
